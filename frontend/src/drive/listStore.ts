@@ -129,8 +129,16 @@ export async function addItem(item: ListItemCreate): Promise<ShoppingList> {
   let price = item.price ?? null;
 
   if (catalogItemId) {
-    const catalog = await getCatalog();
-    const catalogItem = catalog.find((c) => c.id === catalogItemId);
+    // A catalog entry created moments ago (e.g. via the add-to-catalog
+    // confirm flow, then immediately referenced here) can race Drive's own
+    // read-after-write propagation delay for catalog.json — retry briefly
+    // before treating it as genuinely missing.
+    let catalogItem;
+    for (let attempt = 0; attempt < 4 && !catalogItem; attempt++) {
+      if (attempt > 0) await new Promise((r) => setTimeout(r, 1000));
+      const catalog = await getCatalog();
+      catalogItem = catalog.find((c) => c.id === catalogItemId);
+    }
     if (!catalogItem) throw new NotFound(`catalog item ${catalogItemId} not found`);
     name = name ?? catalogItem.name;
     quantity = quantity ?? catalogItem.default_quantity;

@@ -1,23 +1,28 @@
 import { useState } from "react";
 import { BottomSheet } from "./BottomSheet";
 import type { ListItem, ListItemUpdate } from "../types";
+import type { Lang } from "../i18n";
 
 export function EditItemSheet({
   item,
+  lang,
   onClose,
   onSave,
 }: {
   item: ListItem;
+  lang: Lang;
   onClose: () => void;
   onSave: (patch: ListItemUpdate) => Promise<void>;
 }) {
-  const [name, setName] = useState(item.name);
+  const [namePt, setNamePt] = useState(item.name_pt ?? "");
+  const [nameEn, setNameEn] = useState(item.name_en ?? "");
   const [quantity, setQuantity] = useState(item.quantity ?? "");
   const [price, setPrice] = useState(item.price != null ? String(item.price) : "");
 
   async function save() {
     await onSave({
-      name,
+      name_pt: namePt.trim() || null,
+      name_en: nameEn.trim() || null,
       quantity: quantity.trim() || null,
       price: price.trim() ? Number(price) : null,
     });
@@ -27,8 +32,20 @@ export function EditItemSheet({
   return (
     <BottomSheet title="Edit item" onClose={onClose}>
       <div className="field">
-        <label>Name</label>
-        <input value={name} onChange={(e) => setName(e.target.value)} />
+        <label>Name (Portuguese)</label>
+        <input
+          value={namePt}
+          onChange={(e) => setNamePt(e.target.value)}
+          autoFocus={lang === "pt"}
+        />
+      </div>
+      <div className="field">
+        <label>Name (English)</label>
+        <input
+          value={nameEn}
+          onChange={(e) => setNameEn(e.target.value)}
+          autoFocus={lang === "en"}
+        />
       </div>
       <div className="field">
         <label>Quantity</label>

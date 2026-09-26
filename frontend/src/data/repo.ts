@@ -82,7 +82,8 @@ function applyLocalAdd(
   create: ListItemCreate,
 ): { list: ShoppingList; catalogChange?: CatalogItem } {
   let catalogItemId = create.catalog_item_id ?? null;
-  let name = create.name ?? null;
+  let namePt = create.name_pt ?? null;
+  let nameEn = create.name_en ?? null;
   let quantity = create.quantity ?? null;
   let price = create.price ?? null;
   let catalogChange: CatalogItem | undefined;
@@ -90,14 +91,16 @@ function applyLocalAdd(
   if (catalogItemId) {
     const catalogItem = catalog.find((c) => c.id === catalogItemId);
     if (catalogItem) {
-      name = name ?? catalogItem.name;
+      namePt = namePt ?? catalogItem.name_pt;
+      nameEn = nameEn ?? catalogItem.name_en;
       quantity = quantity ?? catalogItem.default_quantity;
       price = price ?? catalogItem.default_last_price;
     }
   } else if (create.add_to_catalog) {
     catalogChange = {
       id: create.new_catalog_item_id ?? crypto.randomUUID(),
-      name: name ?? "",
+      name_pt: namePt,
+      name_en: nameEn,
       default_quantity: quantity,
       default_last_price: price,
     };
@@ -107,7 +110,8 @@ function applyLocalAdd(
   const newItem: ListItem = {
     id: create.id ?? crypto.randomUUID(),
     catalog_item_id: catalogItemId,
-    name: name ?? "",
+    name_pt: namePt,
+    name_en: nameEn,
     quantity,
     price,
     done: false,

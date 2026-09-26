@@ -1,17 +1,20 @@
 import { useRef, useState } from "react";
 import type { ListItem } from "../types";
 import { formatPrice } from "../format";
+import { displayName, secondaryName, type Lang } from "../i18n";
 
 const SWIPE_THRESHOLD = 64;
 const LONG_PRESS_MS = 500;
 
 export function ItemRow({
   item,
+  lang,
   onToggle,
   onDelete,
   onEdit,
 }: {
   item: ListItem;
+  lang: Lang;
   onToggle: () => void;
   onDelete: () => void;
   onEdit: () => void;
@@ -64,9 +67,10 @@ export function ItemRow({
           if (!draggingRef.current) onToggle();
         }}
       >
-        <div className="item-name">{item.name}</div>
-        {(item.quantity || item.price != null) && (
+        <div className="item-name">{displayName(item, lang)}</div>
+        {(secondaryName(item, lang) || item.quantity || item.price != null) && (
           <div className="item-meta mono">
+            {secondaryName(item, lang) && <span>{secondaryName(item, lang)}</span>}
             {item.quantity && <span>{item.quantity}</span>}
             {item.price != null && <span>{formatPrice(item.price)}</span>}
           </div>

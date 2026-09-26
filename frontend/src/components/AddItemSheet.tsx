@@ -1,13 +1,20 @@
 import { useMemo, useState } from "react";
 import { BottomSheet } from "./BottomSheet";
 import type { CatalogItem, ListItemCreate } from "../types";
+import { displayName, secondaryName, type Lang } from "../i18n";
+
+function matchesQuery(item: CatalogItem, q: string): boolean {
+  return (item.name_pt ?? "").toLowerCase().includes(q) || (item.name_en ?? "").toLowerCase().includes(q);
+}
 
 export function AddItemSheet({
   catalog,
+  lang,
   onClose,
   onAdd,
 }: {
   catalog: CatalogItem[];
+  lang: Lang;
   onClose: () => void;
   onAdd: (create: ListItemCreate) => Promise<void>;
 }) {
@@ -17,13 +24,13 @@ export function AddItemSheet({
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    return catalog.filter((c) => c.name.toLowerCase().includes(q)).slice(0, 8);
+    return catalog.filter((c) => matchesQuery(c, q)).slice(0, 8);
   }, [query, catalog]);
 
-  const exactMatch = useMemo(
-    () => catalog.find((c) => c.name.toLowerCase() === query.trim().toLowerCase()),
-    [query, catalog],
-  );
+  const exactMatch = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return catalog.find((c) => (c.name_pt ?? "").toLowerCase() === q || (c.name_en ?? "").toLowerCase() === q);
+  }, [query, catalog]);
 
   async function pick(item: CatalogItem) {
     await onAdd({ catalog_item_id: item.id });
@@ -42,7 +49,11 @@ export function AddItemSheet({
 
   async function confirmAdd(addToCatalog: boolean) {
     if (!confirmName) return;
-    await onAdd({ name: confirmName, add_to_catalog: addToCatalog });
+    await onAdd({
+      name_pt: lang === "pt" ? confirmName : undefined,
+      name_en: lang === "en" ? confirmName : undefined,
+      add_to_catalog: addToCatalog,
+    });
     onClose();
   }
 
@@ -67,7 +78,7 @@ export function AddItemSheet({
           <div className="field">
             <input
               autoFocus
-              placeholder="Search or type a new item…"
+              placeholder="Search in Portuguese or English…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -77,12 +88,16 @@ export function AddItemSheet({
           </div>
           {matches.length > 0 && (
             <div className="suggestion-list">
-              {matches.map((m) => (
-                <button key={m.id} className="suggestion-item" onClick={() => pick(m)}>
-                  {m.name}
-                  {m.default_quantity ? ` · ${m.default_quantity}` : ""}
-                </button>
-              ))}
+              {matches.map((m) => {
+                const secondary = secondaryName(m, lang);
+                return (
+                  <button key={m.id} className="suggestion-item" onClick={() => pick(m)}>
+                    {displayName(m, lang)}
+                    {secondary ? ` · ${secondary}` : ""}
+                    {m.default_quantity ? ` · ${m.default_quantity}` : ""}
+                  </button>
+                );
+              })}
             </div>
           )}
           <div className="sheet-actions">

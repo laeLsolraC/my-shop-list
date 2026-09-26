@@ -1,26 +1,31 @@
 import { useState } from "react";
 import { BottomSheet } from "./BottomSheet";
 import type { CatalogItem, CatalogItemCreate, CatalogItemUpdate } from "../types";
+import type { Lang } from "../i18n";
 
 export function CatalogItemSheet({
   item,
+  lang,
   onClose,
   onSave,
   onDelete,
 }: {
   item?: CatalogItem;
+  lang: Lang;
   onClose: () => void;
   onSave: (data: CatalogItemCreate | CatalogItemUpdate) => Promise<void>;
   onDelete?: () => Promise<void>;
 }) {
-  const [name, setName] = useState(item?.name ?? "");
+  const [namePt, setNamePt] = useState(item?.name_pt ?? "");
+  const [nameEn, setNameEn] = useState(item?.name_en ?? "");
   const [quantity, setQuantity] = useState(item?.default_quantity ?? "");
   const [price, setPrice] = useState(item?.default_last_price != null ? String(item.default_last_price) : "");
 
   async function save() {
-    if (!name.trim()) return;
+    if (!namePt.trim() && !nameEn.trim()) return;
     await onSave({
-      name: name.trim(),
+      name_pt: namePt.trim() || null,
+      name_en: nameEn.trim() || null,
       default_quantity: quantity.trim() || null,
       default_last_price: price.trim() ? Number(price) : null,
     });
@@ -30,8 +35,12 @@ export function CatalogItemSheet({
   return (
     <BottomSheet title={item ? "Edit catalog item" : "Add catalog item"} onClose={onClose}>
       <div className="field">
-        <label>Name</label>
-        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+        <label>Name (Portuguese)</label>
+        <input autoFocus={lang === "pt"} value={namePt} onChange={(e) => setNamePt(e.target.value)} />
+      </div>
+      <div className="field">
+        <label>Name (English)</label>
+        <input autoFocus={lang === "en"} value={nameEn} onChange={(e) => setNameEn(e.target.value)} />
       </div>
       <div className="field">
         <label>Default quantity</label>

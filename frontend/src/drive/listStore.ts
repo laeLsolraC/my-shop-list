@@ -85,7 +85,8 @@ export async function createNewList(): Promise<ShoppingList> {
     .map((i) => ({
       id: crypto.randomUUID(),
       catalog_item_id: i.catalog_item_id,
-      name: i.name,
+      name_pt: i.name_pt,
+      name_en: i.name_en,
       quantity: i.quantity,
       price: i.price,
       done: false,
@@ -124,7 +125,8 @@ export async function addItem(item: ListItemCreate): Promise<ShoppingList> {
   const list = await readJson<ShoppingList>(fileId);
 
   let catalogItemId = item.catalog_item_id ?? null;
-  let name = item.name ?? null;
+  let namePt = item.name_pt ?? null;
+  let nameEn = item.name_en ?? null;
   let quantity = item.quantity ?? null;
   let price = item.price ?? null;
 
@@ -140,13 +142,15 @@ export async function addItem(item: ListItemCreate): Promise<ShoppingList> {
       catalogItem = catalog.find((c) => c.id === catalogItemId);
     }
     if (!catalogItem) throw new NotFound(`catalog item ${catalogItemId} not found`);
-    name = name ?? catalogItem.name;
+    namePt = namePt ?? catalogItem.name_pt;
+    nameEn = nameEn ?? catalogItem.name_en;
     quantity = quantity ?? catalogItem.default_quantity;
     price = price ?? catalogItem.default_last_price;
   } else if (item.add_to_catalog) {
     const created = await addCatalogItem({
       id: item.new_catalog_item_id,
-      name: name ?? "",
+      name_pt: namePt,
+      name_en: nameEn,
       default_quantity: quantity,
       default_last_price: price,
     });
@@ -156,7 +160,8 @@ export async function addItem(item: ListItemCreate): Promise<ShoppingList> {
   const newItem: ListItem = {
     id: item.id ?? crypto.randomUUID(),
     catalog_item_id: catalogItemId,
-    name: name ?? "",
+    name_pt: namePt,
+    name_en: nameEn,
     quantity,
     price,
     done: false,

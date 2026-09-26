@@ -25,7 +25,8 @@ export async function addCatalogItem(item: CatalogItemCreate): Promise<CatalogIt
   const items = await getCatalog();
   const newItem: CatalogItem = {
     id: item.id ?? crypto.randomUUID(),
-    name: item.name,
+    name_pt: item.name_pt ?? null,
+    name_en: item.name_en ?? null,
     default_quantity: item.default_quantity ?? null,
     default_last_price: item.default_last_price ?? null,
   };

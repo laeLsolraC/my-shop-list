@@ -3,10 +3,12 @@ import { ItemRow } from "./ItemRow";
 import { AddItemSheet } from "./AddItemSheet";
 import { EditItemSheet } from "./EditItemSheet";
 import type { CatalogItem, ListItem, ListItemCreate, ListItemUpdate, ShoppingList } from "../types";
+import type { Lang } from "../i18n";
 
 export function ActiveListScreen({
   list,
   catalog,
+  lang,
   onAdd,
   onUpdate,
   onDelete,
@@ -14,6 +16,7 @@ export function ActiveListScreen({
 }: {
   list: ShoppingList;
   catalog: CatalogItem[];
+  lang: Lang;
   onAdd: (create: ListItemCreate) => Promise<void>;
   onUpdate: (itemId: string, patch: ListItemUpdate) => Promise<void>;
   onDelete: (itemId: string) => Promise<void>;
@@ -42,6 +45,7 @@ export function ActiveListScreen({
         <ItemRow
           key={item.id}
           item={item}
+          lang={lang}
           onToggle={() => onUpdate(item.id, { done: true })}
           onDelete={() => onDelete(item.id)}
           onEdit={() => setEditing(item)}
@@ -55,6 +59,7 @@ export function ActiveListScreen({
             <ItemRow
               key={item.id}
               item={item}
+              lang={lang}
               onToggle={() => onUpdate(item.id, { done: false })}
               onDelete={() => onDelete(item.id)}
               onEdit={() => setEditing(item)}
@@ -70,6 +75,7 @@ export function ActiveListScreen({
       {adding && (
         <AddItemSheet
           catalog={catalog}
+          lang={lang}
           onClose={() => setAdding(false)}
           onAdd={(create) => onAdd(create)}
         />
@@ -78,6 +84,7 @@ export function ActiveListScreen({
       {editing && (
         <EditItemSheet
           item={editing}
+          lang={lang}
           onClose={() => setEditing(null)}
           onSave={(patch) => onUpdate(editing.id, patch)}
         />

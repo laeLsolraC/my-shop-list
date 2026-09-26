@@ -9,6 +9,7 @@ import { ToastHost, showToast } from "./components/Toast";
 import { handleCallback, isAuthenticated, logout } from "./auth/googleAuth";
 import { attachOnlineListener } from "./offline/sync";
 import * as repo from "./data/repo";
+import { displayName, getLang, setLang as persistLang, type Lang } from "./i18n";
 import type {
   CatalogItem,
   CatalogItemCreate,
@@ -28,7 +29,14 @@ export default function App() {
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [history, setHistory] = useState<ShoppingListSummary[]>([]);
   const [historyDetail, setHistoryDetail] = useState<ShoppingList | null>(null);
+  const [lang, setLangState] = useState<Lang>(getLang());
   const pendingDeletes = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+
+  function toggleLang() {
+    const next: Lang = lang === "pt" ? "en" : "pt";
+    persistLang(next);
+    setLangState(next);
+  }
 
   async function loadAll() {
     const [list, cat, hist] = await Promise.all([repo.loadActiveList(), repo.loadCatalog(), repo.loadHistory()]);
@@ -121,7 +129,7 @@ export default function App() {
     }, 10000);
     pendingDeletes.current.set(itemId, timer);
 
-    showToast(`Removed "${item.name}"`, {
+    showToast(`Removed "${displayName(item, lang)}"`, {
       durationMs: 10000,
       actionLabel: "Undo",
       onAction: () => {
@@ -188,19 +196,25 @@ export default function App() {
     <div className="app">
       <header className="header">
         <h1>My Shop List</h1>
-        <button className="icon-btn" onClick={handleDisconnect} aria-label="Disconnect from Google Drive">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
-        </button>
+        <div style={{ display: "flex", gap: 4 }}>
+          <button className="icon-btn mono" onClick={toggleLang} aria-label="Switch language" style={{ fontSize: 13, fontWeight: 700 }}>
+            {lang === "pt" ? "EN" : "PT"}
+          </button>
+          <button className="icon-btn" onClick={handleDisconnect} aria-label="Disconnect from Google Drive">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
+        </div>
       </header>
 
       {tab === "active" && activeList && (
         <ActiveListScreen
           list={activeList}
           catalog={catalog}
+          lang={lang}
           onAdd={handleAddItem}
           onUpdate={handleUpdateItem}
           onDelete={(id) => {
@@ -214,6 +228,7 @@ export default function App() {
       {tab === "catalog" && (
         <CatalogScreen
           catalog={catalog}
+          lang={lang}
           onAdd={handleAddCatalogItem}
           onUpdate={handleUpdateCatalogItem}
           onDelete={handleDeleteCatalogItem}
@@ -222,7 +237,7 @@ export default function App() {
 
       {tab === "history" &&
         (historyDetail ? (
-          <HistoryDetailScreen list={historyDetail} onBack={() => setHistoryDetail(null)} />
+          <HistoryDetailScreen list={historyDetail} lang={lang} onBack={() => setHistoryDetail(null)} />
         ) : (
           <HistoryScreen history={history} onOpen={handleOpenHistory} />
         ))}

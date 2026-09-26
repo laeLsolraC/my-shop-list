@@ -1,19 +1,22 @@
 export interface CatalogItem {
   id: string;
-  name: string;
+  name_pt: string | null;
+  name_en: string | null;
   default_quantity: string | null;
   default_last_price: number | null;
 }
 
 export interface CatalogItemCreate {
   id?: string;
-  name: string;
+  name_pt?: string | null;
+  name_en?: string | null;
   default_quantity?: string | null;
   default_last_price?: number | null;
 }
 
 export interface CatalogItemUpdate {
-  name?: string;
+  name_pt?: string | null;
+  name_en?: string | null;
   default_quantity?: string | null;
   default_last_price?: number | null;
 }
@@ -21,7 +24,8 @@ export interface CatalogItemUpdate {
 export interface ListItem {
   id: string;
   catalog_item_id: string | null;
-  name: string;
+  name_pt: string | null;
+  name_en: string | null;
   quantity: string | null;
   price: number | null;
   done: boolean;
@@ -30,7 +34,8 @@ export interface ListItem {
 export interface ListItemCreate {
   id?: string;
   catalog_item_id?: string | null;
-  name?: string | null;
+  name_pt?: string | null;
+  name_en?: string | null;
   quantity?: string | null;
   price?: number | null;
   add_to_catalog?: boolean;
@@ -39,7 +44,8 @@ export interface ListItemCreate {
 }
 
 export interface ListItemUpdate {
-  name?: string;
+  name_pt?: string | null;
+  name_en?: string | null;
   quantity?: string | null;
   price?: number | null;
   done?: boolean;

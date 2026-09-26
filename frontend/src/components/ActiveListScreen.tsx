@@ -4,6 +4,7 @@ import { AddItemSheet } from "./AddItemSheet";
 import { EditItemSheet } from "./EditItemSheet";
 import type { CatalogItem, ListItem, ListItemCreate, ListItemUpdate, ShoppingList } from "../types";
 import type { Lang } from "../i18n";
+import { useBackableClose } from "../nav";
 
 export function ActiveListScreen({
   list,
@@ -24,6 +25,8 @@ export function ActiveListScreen({
 }) {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<ListItem | null>(null);
+  const closeAdd = useBackableClose(adding, () => setAdding(false));
+  const closeEdit = useBackableClose(editing !== null, () => setEditing(null));
 
   const unchecked = list.items.filter((i) => !i.done);
   const checked = list.items.filter((i) => i.done);
@@ -76,7 +79,7 @@ export function ActiveListScreen({
         <AddItemSheet
           catalog={catalog}
           lang={lang}
-          onClose={() => setAdding(false)}
+          onClose={closeAdd}
           onAdd={(create) => onAdd(create)}
         />
       )}
@@ -85,7 +88,7 @@ export function ActiveListScreen({
         <EditItemSheet
           item={editing}
           lang={lang}
-          onClose={() => setEditing(null)}
+          onClose={closeEdit}
           onSave={(patch) => onUpdate(editing.id, patch)}
         />
       )}

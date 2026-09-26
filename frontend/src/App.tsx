@@ -81,6 +81,38 @@ export default function App() {
     });
   }, []);
 
+  // Navigation history: without this, there's nothing for the Android back
+  // button/gesture to undo, so it just exits the app instead of moving
+  // between tabs or out of a history detail view. The root screen (tab
+  // "active", no detail open) deliberately has no entry of its own, so back
+  // still exits normally once you're all the way back to it.
+  useEffect(() => {
+    window.history.replaceState({ tab: "active", historyDetail: null }, "");
+
+    function onPopState(e: PopStateEvent) {
+      const state = e.state as { tab?: Tab; historyDetail?: string | null } | null;
+      const nextTab = state?.tab ?? "active";
+      setTab(nextTab);
+      if (state?.historyDetail) {
+        repo
+          .loadListDetail(state.historyDetail)
+          .then(setHistoryDetail)
+          .catch(() => setHistoryDetail(null));
+      } else {
+        setHistoryDetail(null);
+      }
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  function navigateTab(newTab: Tab) {
+    if (newTab === tab && historyDetail === null) return;
+    window.history.pushState({ tab: newTab, historyDetail: null }, "");
+    setHistoryDetail(null);
+    setTab(newTab);
+  }
+
   async function handleDisconnect() {
     await logout();
     setStatus("connect");
@@ -183,6 +215,7 @@ export default function App() {
   async function handleOpenHistory(listId: string) {
     try {
       const detail = await repo.loadListDetail(listId);
+      window.history.pushState({ tab: "history", historyDetail: listId }, "");
       setHistoryDetail(detail);
     } catch {
       showToast("Couldn't load that list — you need a connection to view history.");
@@ -237,18 +270,12 @@ export default function App() {
 
       {tab === "history" &&
         (historyDetail ? (
-          <HistoryDetailScreen list={historyDetail} lang={lang} onBack={() => setHistoryDetail(null)} />
+          <HistoryDetailScreen list={historyDetail} lang={lang} onBack={() => window.history.back()} />
         ) : (
           <HistoryScreen history={history} onOpen={handleOpenHistory} />
         ))}
 
-      <TabBar
-        tab={tab}
-        onChange={(t) => {
-          setHistoryDetail(null);
-          setTab(t);
-        }}
-      />
+      <TabBar tab={tab} onChange={navigateTab} />
       <ToastHost />
     </div>
   );

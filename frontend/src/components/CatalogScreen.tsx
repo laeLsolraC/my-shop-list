@@ -3,6 +3,7 @@ import { CatalogItemSheet } from "./CatalogItemSheet";
 import type { CatalogItem, CatalogItemCreate, CatalogItemUpdate } from "../types";
 import { formatPrice } from "../format";
 import { displayName, secondaryName, type Lang } from "../i18n";
+import { useBackableClose } from "../nav";
 
 export function CatalogScreen({
   catalog,
@@ -19,6 +20,8 @@ export function CatalogScreen({
 }) {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<CatalogItem | null>(null);
+  const closeAdd = useBackableClose(adding, () => setAdding(false));
+  const closeEdit = useBackableClose(editing !== null, () => setEditing(null));
 
   return (
     <div className="screen">
@@ -52,7 +55,7 @@ export function CatalogScreen({
       {adding && (
         <CatalogItemSheet
           lang={lang}
-          onClose={() => setAdding(false)}
+          onClose={closeAdd}
           onSave={(data) => onAdd(data as CatalogItemCreate)}
         />
       )}
@@ -61,7 +64,7 @@ export function CatalogScreen({
         <CatalogItemSheet
           item={editing}
           lang={lang}
-          onClose={() => setEditing(null)}
+          onClose={closeEdit}
           onSave={(data) => onUpdate(editing.id, data)}
           onDelete={() => onDelete(editing.id)}
         />

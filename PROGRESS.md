@@ -10,18 +10,20 @@ A shopping-list PWA. See `CLAUDE.md` for the full architecture (frontend
 talks to Google Drive directly, a tiny Cloudflare Worker only proxies the
 OAuth token exchange) and `REQUIREMENTS.md` for the full feature/UX spec.
 
+**It's live and verified working**: https://laelsolrac.github.io/my-shop-list/
+
 ## Decisions already made (don't re-litigate without asking the user)
 
 - **No backend in the data path.** The original FastAPI-backend design was
   fully replaced this session after the user clarified the app must work
   from any device, offline, with zero dependency on a specific machine.
 - Frontend: React + Vite + TypeScript, installable PWA, deployed to GitHub
-  Pages.
+  Pages (the repo is public — GitHub Pages doesn't support private repos on
+  the free plan, and there's nothing sensitive committed).
 - Auth: OAuth 2.0 Authorization Code + PKCE, "Web application" client type
-  (reusing the client already created — id in `frontend/.env`), with a
-  Cloudflare Worker (`worker/`) proxying the token exchange/refresh since
-  Google requires a client secret there. No refresh-token popups after the
-  first login.
+  (reusing the client already created), with a Cloudflare Worker
+  (`worker/`) proxying the token exchange/refresh since Google requires a
+  client secret there. No refresh-token popups after the first login.
 - Drive access: `drive.file` scope only, same as before.
 - Storage model: a `catalog.json` file plus one `shopping-list-{id}.json`
   per list (`id` = `YYYYMMDDvN`). "Active list" is derived (the
@@ -29,67 +31,57 @@ OAuth token exchange) and `REQUIREMENTS.md` for the full feature/UX spec.
 - Offline: only the **active list** needs to fully work offline
   (view/add/check/edit/delete, queued and synced on reconnect). Catalog and
   History require connectivity. Conflict handling is last-write-wins.
-- Git: local repo + private GitHub remote named `my-shop-list`. `gh` CLI
-  installed, not yet authenticated — needs `gh auth login` run interactively
-  by the user before an agent can create/push the remote.
+- Git: local repo + private... now **public** GitHub remote
+  (`laeLsolraC/my-shop-list`), `gh` CLI authenticated.
 
-## Done so far
+## Done so far — everything in the original plan is complete
 
-**Retired but working** (kept in repo, unused by the shipped app):
-`backend/` — full FastAPI app, verified end-to-end against real Drive
-(auth, catalog CRUD, list CRUD, carry-over, price sync all confirmed
-working before the architecture pivot).
+- `worker/` deployed at
+  `https://my-shop-list-token-proxy.my-shop-list-worker.workers.dev`,
+  secrets set both there and in `worker/.dev.vars` for local dev.
+- Google Cloud OAuth client updated with the GitHub Pages + localhost
+  origins/redirect URIs.
+- `frontend/` fully built (auth, Drive client/stores, offline queue, all
+  screens), deployed via `.github/workflows/deploy.yml` to GitHub Pages.
+- **Live end-to-end verification done** with a real Google account against
+  the real deployed app (see `e2e/`): login, catalog add, add-to-list via
+  type-ahead, check-off with price sync, and offline-add-then-reconnect-
+  sync all confirmed working against real Drive data.
+- Two real bugs found by that live testing and fixed:
+  1. `repo.ts`'s online write paths were catching *any* error from the
+     network path and silently falling back to the offline queue, even
+     when genuinely connected — masking real failures as queued mutations
+     with incomplete data. Now only genuine network failures (`TypeError`
+     from a blocked fetch) fall back; logical errors surface as a real
+     error/toast.
+  2. `listStore.addItem`'s catalog lookup (used when adding an item by
+     `catalog_item_id`) could race Drive's own read-after-write
+     propagation delay for a catalog entry created moments earlier — added
+     a short retry rather than failing immediately.
+- `backend/` — retired, kept in repo unused (cleanup left to the user).
+- `e2e/smoke-test.js` — a repeatable Playwright smoke test; see
+  `e2e/README.md` for how to run it (requires a manually-authenticated
+  browser session, since Google blocks sign-in from an automation-launched
+  one).
 
-**Current build:**
-- `worker/` — `wrangler.toml`, `src/index.ts` (`/token/exchange`,
-  `/token/refresh`), typechecks clean. **Not yet deployed** (needs
-  `npx wrangler deploy` + `wrangler secret put` for
-  `GOOGLE_CLIENT_SECRET`/`GOOGLE_CLIENT_ID`/`ALLOWED_ORIGIN`, and a
-  Cloudflare account).
-- `frontend/` — full scaffold, typechecks clean, builds clean
-  (`npm run build` produces a working PWA with service worker + manifest).
-  Implemented: `types.ts`, `config.ts`, `auth/` (PKCE + token flow),
-  `drive/` (`driveClient`, `catalogStore`, `listStore` — ported from
-  `drive_store.py`), `offline/` (IndexedDB cache + mutation queue + sync),
-  `data/repo.ts` (the cache/network/offline-fallback layer the UI calls),
-  and all UI (`ActiveListScreen`, `CatalogScreen`, `HistoryScreen` +
-  detail, `AddItemSheet`, `EditItemSheet`, `CatalogItemSheet`, `TabBar`,
-  `Toast`, `ConnectScreen`, `BottomSheet`, `ItemRow` with swipe/long-press).
-- Logo regenerated with the new palette (cream/olive/berry-pink/deep
-  green); PWA icon set (192/512/maskable) generated into
-  `frontend/public/icons/`.
-- `.github/workflows/deploy.yml` — builds and deploys `frontend/` to GitHub
-  Pages on push to `master`.
+## Not done yet
 
-## Not done yet (in rough order)
-
-1. **Create a Cloudflare account and deploy the Worker** (`cd worker &&
-   npx wrangler deploy`), set its three env values via `wrangler secret
-   put`. Get the deployed Worker URL.
-2. **Update the Google Cloud OAuth client**: add the GitHub Pages origin
-   (and `http://localhost:5173` for dev) to Authorized JavaScript origins
-   and Authorized redirect URIs.
-3. Fill in `frontend/.env`'s `VITE_WORKER_URL` with the deployed Worker URL
-   (client id is already filled in).
-4. **End-to-end test locally**: `wrangler dev` (worker) + `npm run dev`
-   (frontend) together — full login, add catalog item, add to active list,
-   check off with a price change, confirm catalog synced, create new list,
-   confirm carry-over, confirm history — then repeat with DevTools
-   "Offline" throttling to confirm the offline queue/sync actually works.
-5. **Enable GitHub Pages** on the repo (Settings → Pages → source: GitHub
-   Actions) and set the `VITE_GOOGLE_CLIENT_ID`/`VITE_WORKER_URL` repo
-   variables the workflow reads, then push to trigger the first deploy.
-6. **Real-device test**: install the PWA (Add to Home Screen) on an actual
+1. **Real-device test**: install the PWA (Add to Home Screen) on an actual
    phone and repeat the same scenarios in standalone mode specifically,
-   since that's the mode this was built for.
-7. `git init` (if not already) / commit this rewrite; push once `gh auth
-   login` is done.
-8. Cleanup decision (ask the user, don't do unilaterally): delete or keep
+   since that's the mode this was built for. Only tested on desktop Edge
+   so far.
+2. Cleanup decision (ask the user, don't do unilaterally): delete or keep
    `backend/`.
+
+## Notes for whoever runs the e2e test next
+
+Drive's read-after-write propagation showed real variance during testing
+— usually fast, occasionally 10s of seconds under rapid repeated requests.
+`e2e/smoke-test.js` treats a drained mutation queue (no errors) as the
+authoritative signal that a write succeeded, rather than re-reading Drive
+immediately afterward — that re-read was flaking on its own timing, not on
+anything the app does.
 
 ## Open questions for the user (ask if relevant, don't assume)
 
-- None currently blocking. If requirements seem to have changed, re-confirm
-  via `/grilling` rather than guessing — that's how this rewrite itself got
-  surfaced (an offline requirement raised mid-session invalidated the
-  original architecture).
+- None currently blocking.

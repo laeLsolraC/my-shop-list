@@ -1,0 +1,7 @@
+name = "my-shop-list-token-proxy"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# Set via `wrangler secret put GOOGLE_CLIENT_SECRET`
+# Set via `wrangler secret put GOOGLE_CLIENT_ID` (not secret, but kept alongside for simplicity)
+# Set via `wrangler secret put ALLOWED_ORIGIN` e.g. https://<username>.github.io

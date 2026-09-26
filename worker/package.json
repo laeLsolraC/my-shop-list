@@ -1,0 +1,17 @@
+{
+  "name": "my-shop-list-worker",
+  "version": "1.0.0",
+  "description": "Stateless Google OAuth token exchange/refresh proxy for My Shop List",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260926.1",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.141.0"
+  }
+}

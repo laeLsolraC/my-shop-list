@@ -9,6 +9,13 @@ backend/token.json
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+frontend/.env
+frontend/.env.local
+
+# Worker (Cloudflare)
+worker/node_modules/
+worker/.wrangler/
+worker/.dev.vars
 
 # Editors / OS
 .vscode/

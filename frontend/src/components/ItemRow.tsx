@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import type { ListItem } from "../types";
+import { formatPrice } from "../format";
 
 const SWIPE_THRESHOLD = 64;
 const LONG_PRESS_MS = 500;
@@ -67,7 +68,7 @@ export function ItemRow({
         {(item.quantity || item.price != null) && (
           <div className="item-meta mono">
             {item.quantity && <span>{item.quantity}</span>}
-            {item.price != null && <span>${item.price.toFixed(2)}</span>}
+            {item.price != null && <span>{formatPrice(item.price)}</span>}
           </div>
         )}
       </button>

@@ -1,4 +1,5 @@
 import type { ShoppingList } from "../types";
+import { formatPrice } from "../format";
 
 export function HistoryDetailScreen({ list, onBack }: { list: ShoppingList; onBack: () => void }) {
   return (
@@ -19,7 +20,7 @@ export function HistoryDetailScreen({ list, onBack }: { list: ShoppingList; onBa
               {(item.quantity || item.price != null) && (
                 <div className="item-meta mono">
                   {item.quantity && <span>{item.quantity}</span>}
-                  {item.price != null && <span>${item.price.toFixed(2)}</span>}
+                  {item.price != null && <span>{formatPrice(item.price)}</span>}
                 </div>
               )}
             </div>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CatalogItemSheet } from "./CatalogItemSheet";
 import type { CatalogItem, CatalogItemCreate, CatalogItemUpdate } from "../types";
+import { formatPrice } from "../format";
 
 export function CatalogScreen({
   catalog,
@@ -34,7 +35,7 @@ export function CatalogScreen({
             {(item.default_quantity || item.default_last_price != null) && (
               <div className="item-meta mono">
                 {item.default_quantity && <span>{item.default_quantity}</span>}
-                {item.default_last_price != null && <span>${item.default_last_price.toFixed(2)}</span>}
+                {item.default_last_price != null && <span>{formatPrice(item.default_last_price)}</span>}
               </div>
             )}
           </div>

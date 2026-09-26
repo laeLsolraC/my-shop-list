@@ -2,6 +2,19 @@ import { getCache, setCache, enqueueMutation } from "../offline/db";
 import * as listStore from "../drive/listStore";
 import * as catalogStore from "../drive/catalogStore";
 import { isOnline, refreshCaches } from "../offline/sync";
+
+/**
+ * Only genuine network unreachability should fall back to the offline queue.
+ * A logical error (e.g. NotFound from a stale/racy read) means we ARE
+ * connected and something is actually wrong — that must surface as a real
+ * error, not get silently absorbed into a queued mutation with missing data.
+ * Browsers throw TypeError specifically when fetch() can't complete a
+ * request at all (offline, DNS, connection refused); anything else is a
+ * real HTTP response or application error.
+ */
+function isNetworkFailure(err: unknown): boolean {
+  return err instanceof TypeError;
+}
 import type {
   CatalogItem,
   CatalogItemCreate,
@@ -136,8 +149,9 @@ export async function addItemToActiveList(create: ListItemCreate): Promise<Shopp
       const list = await listStore.addItem(finalized);
       await refreshCaches();
       return list;
-    } catch {
-      /* fall through to offline path */
+    } catch (err) {
+      if (!isNetworkFailure(err)) throw err;
+      /* else fall through to offline path */
     }
   }
 
@@ -160,8 +174,9 @@ export async function updateActiveListItem(itemId: string, patch: ListItemUpdate
       const list = await listStore.updateItem(itemId, patch);
       await refreshCaches();
       return list;
-    } catch {
-      /* fall through to offline path */
+    } catch (err) {
+      if (!isNetworkFailure(err)) throw err;
+      /* else fall through to offline path */
     }
   }
 
@@ -186,8 +201,9 @@ export async function deleteActiveListItem(itemId: string): Promise<ShoppingList
       const list = await listStore.deleteItem(itemId);
       await refreshCaches();
       return list;
-    } catch {
-      /* fall through to offline path */
+    } catch (err) {
+      if (!isNetworkFailure(err)) throw err;
+      /* else fall through to offline path */
     }
   }
 
@@ -205,8 +221,9 @@ export async function createNewActiveList(): Promise<ShoppingList> {
       const list = await listStore.createNewList();
       await refreshCaches();
       return list;
-    } catch {
-      /* fall through to offline path */
+    } catch (err) {
+      if (!isNetworkFailure(err)) throw err;
+      /* else fall through to offline path */
     }
   }
 

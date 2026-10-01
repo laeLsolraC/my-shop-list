@@ -371,7 +371,7 @@ button {
 .toast button {
   background: transparent;
   border: none;
-  color: var(--olive);
+  color: #000;
   font-weight: 700;
   cursor: pointer;
 }

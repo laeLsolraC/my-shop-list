@@ -34,7 +34,10 @@ export function AddItemSheet({
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     const filtered = q ? pickable.filter((c) => matchesQuery(c, q)) : pickable;
-    return [...filtered].sort((a, b) => displayName(a, lang).localeCompare(displayName(b, lang)));
+    return [...filtered].sort((a, b) => {
+      if (a.favorite !== b.favorite) return a.favorite ? -1 : 1;
+      return displayName(a, lang).localeCompare(displayName(b, lang));
+    });
   }, [pickable, query, lang]);
 
   function toggle(id: string) {

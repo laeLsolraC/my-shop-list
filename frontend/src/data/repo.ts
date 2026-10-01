@@ -1,7 +1,7 @@
 import { getCache, setCache, enqueueMutation } from "../offline/db";
 import * as listStore from "../drive/listStore";
 import * as catalogStore from "../drive/catalogStore";
-import { isOnline, refreshCaches } from "../offline/sync";
+import { isOnline } from "../offline/sync";
 
 /**
  * Only genuine network unreachability should fall back to the offline queue.
@@ -141,7 +141,17 @@ function applyLocalUpdate(
 
 // --- writes: try network when online, fall back to optimistic cache + queue when not ---
 
-export async function addItemToActiveList(create: ListItemCreate): Promise<ShoppingList> {
+async function patchCatalogCache(catalogChange: CatalogItem, isNew: boolean): Promise<void> {
+  const cachedCatalog = (await getCache<CatalogItem[]>("catalog")) ?? [];
+  const next = isNew
+    ? [...cachedCatalog, catalogChange]
+    : cachedCatalog.map((c) => (c.id === catalogChange.id ? catalogChange : c));
+  await setCache("catalog", next);
+}
+
+export async function addItemToActiveList(
+  create: ListItemCreate,
+): Promise<{ list: ShoppingList; catalogChange?: CatalogItem }> {
   const finalized: ListItemCreate = {
     ...create,
     id: create.id ?? crypto.randomUUID(),
@@ -151,9 +161,10 @@ export async function addItemToActiveList(create: ListItemCreate): Promise<Shopp
 
   if (isOnline()) {
     try {
-      const list = await listStore.addItem(finalized);
-      await refreshCaches();
-      return list;
+      const { list, catalogChange } = await listStore.addItem(finalized);
+      await setCache("activeList", list);
+      if (catalogChange) await patchCatalogCache(catalogChange, true);
+      return { list, catalogChange };
     } catch (err) {
       if (!isNetworkFailure(err)) throw err;
       /* else fall through to offline path */
@@ -170,15 +181,19 @@ export async function addItemToActiveList(create: ListItemCreate): Promise<Shopp
   await setCache("activeList", list);
   if (catalogChange) await setCache("catalog", [...cachedCatalog, catalogChange]);
   await enqueueMutation({ kind: "addItem", payload: finalized });
-  return list;
+  return { list, catalogChange };
 }
 
-export async function updateActiveListItem(itemId: string, patch: ListItemUpdate): Promise<ShoppingList> {
+export async function updateActiveListItem(
+  itemId: string,
+  patch: ListItemUpdate,
+): Promise<{ list: ShoppingList; catalogChange?: CatalogItem }> {
   if (isOnline()) {
     try {
-      const list = await listStore.updateItem(itemId, patch);
-      await refreshCaches();
-      return list;
+      const { list, catalogChange } = await listStore.updateItem(itemId, patch);
+      await setCache("activeList", list);
+      if (catalogChange) await patchCatalogCache(catalogChange, false);
+      return { list, catalogChange };
     } catch (err) {
       if (!isNetworkFailure(err)) throw err;
       /* else fall through to offline path */
@@ -197,14 +212,14 @@ export async function updateActiveListItem(itemId: string, patch: ListItemUpdate
     );
   }
   await enqueueMutation({ kind: "updateItem", itemId, payload: patch });
-  return list;
+  return { list, catalogChange };
 }
 
 export async function deleteActiveListItem(itemId: string): Promise<ShoppingList> {
   if (isOnline()) {
     try {
       const list = await listStore.deleteItem(itemId);
-      await refreshCaches();
+      await setCache("activeList", list);
       return list;
     } catch (err) {
       if (!isNetworkFailure(err)) throw err;
@@ -224,7 +239,7 @@ export async function createNewActiveList(): Promise<ShoppingList> {
   if (isOnline()) {
     try {
       const list = await listStore.createNewList();
-      await refreshCaches();
+      await setCache("activeList", list);
       return list;
     } catch (err) {
       if (!isNetworkFailure(err)) throw err;
@@ -246,17 +261,21 @@ export async function createNewActiveList(): Promise<ShoppingList> {
 
 export async function addCatalogItem(item: CatalogItemCreate): Promise<CatalogItem> {
   const created = await catalogStore.addCatalogItem(item);
-  await refreshCaches();
+  await patchCatalogCache(created, true);
   return created;
 }
 
 export async function updateCatalogItem(itemId: string, patch: CatalogItemUpdate): Promise<CatalogItem> {
   const updated = await catalogStore.updateCatalogItem(itemId, patch);
-  await refreshCaches();
+  await patchCatalogCache(updated, false);
   return updated;
 }
 
 export async function deleteCatalogItem(itemId: string): Promise<void> {
   await catalogStore.deleteCatalogItem(itemId);
-  await refreshCaches();
+  const cachedCatalog = (await getCache<CatalogItem[]>("catalog")) ?? [];
+  await setCache(
+    "catalog",
+    cachedCatalog.filter((c) => c.id !== itemId),
+  );
 }

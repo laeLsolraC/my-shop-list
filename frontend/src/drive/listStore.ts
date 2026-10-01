@@ -1,6 +1,13 @@
 import { createJson, listFiles, readJson, writeJson } from "./driveClient";
 import { getCatalog, addCatalogItem, updateCatalogItem } from "./catalogStore";
-import type { ListItem, ListItemCreate, ListItemUpdate, ShoppingList, ShoppingListSummary } from "../types";
+import type {
+  CatalogItem,
+  ListItem,
+  ListItemCreate,
+  ListItemUpdate,
+  ShoppingList,
+  ShoppingListSummary,
+} from "../types";
 
 const LIST_PREFIX = "shopping-list-";
 const LIST_ID_RE = /^(\d{8})v(\d+)$/;
@@ -120,7 +127,9 @@ export async function getList(listId: string): Promise<ShoppingList> {
   return readJson<ShoppingList>(match.fileId);
 }
 
-export async function addItem(item: ListItemCreate): Promise<ShoppingList> {
+export async function addItem(
+  item: ListItemCreate,
+): Promise<{ list: ShoppingList; catalogChange?: CatalogItem }> {
   const { fileId } = await getActiveListFile();
   const list = await readJson<ShoppingList>(fileId);
 
@@ -129,6 +138,7 @@ export async function addItem(item: ListItemCreate): Promise<ShoppingList> {
   let nameEn = item.name_en ?? null;
   let quantity = item.quantity ?? null;
   let price = item.price ?? null;
+  let catalogChange: CatalogItem | undefined;
 
   if (catalogItemId) {
     // A catalog entry created moments ago (e.g. via the add-to-catalog
@@ -155,6 +165,7 @@ export async function addItem(item: ListItemCreate): Promise<ShoppingList> {
       default_last_price: price,
     });
     catalogItemId = created.id;
+    catalogChange = created;
   }
 
   const newItem: ListItem = {
@@ -168,10 +179,13 @@ export async function addItem(item: ListItemCreate): Promise<ShoppingList> {
   };
   list.items.push(newItem);
   await writeJson(fileId, serializeList(list));
-  return list;
+  return { list, catalogChange };
 }
 
-export async function updateItem(itemId: string, patch: ListItemUpdate): Promise<ShoppingList> {
+export async function updateItem(
+  itemId: string,
+  patch: ListItemUpdate,
+): Promise<{ list: ShoppingList; catalogChange?: CatalogItem }> {
   const { fileId } = await getActiveListFile();
   const list = await readJson<ShoppingList>(fileId);
 
@@ -180,16 +194,17 @@ export async function updateItem(itemId: string, patch: ListItemUpdate): Promise
 
   Object.assign(target, patch);
 
+  let catalogChange: CatalogItem | undefined;
   if (patch.done === true && target.catalog_item_id) {
     const catalog = await getCatalog();
     const catalogItem = catalog.find((c) => c.id === target.catalog_item_id);
     if (catalogItem && catalogItem.default_last_price !== target.price) {
-      await updateCatalogItem(target.catalog_item_id, { default_last_price: target.price });
+      catalogChange = await updateCatalogItem(target.catalog_item_id, { default_last_price: target.price });
     }
   }
 
   await writeJson(fileId, serializeList(list));
-  return list;
+  return { list, catalogChange };
 }
 
 export async function deleteItem(itemId: string): Promise<ShoppingList> {

@@ -120,9 +120,9 @@ export default function App() {
 
   async function handleAddItem(create: ListItemCreate) {
     try {
-      const result = await repo.addItemToActiveList(create);
-      setActiveList(result);
-      repo.loadCatalog().then(setCatalog);
+      const { list, catalogChange } = await repo.addItemToActiveList(create);
+      setActiveList(list);
+      if (catalogChange) setCatalog((cur) => [...cur, catalogChange]);
     } catch {
       showToast("Couldn't add item — check your connection.");
     }
@@ -133,9 +133,9 @@ export default function App() {
     const prev = activeList;
     setActiveList({ ...activeList, items: activeList.items.map((i) => (i.id === itemId ? { ...i, ...patch } : i)) });
     try {
-      const result = await repo.updateActiveListItem(itemId, patch);
-      setActiveList(result);
-      if (patch.done === true) repo.loadCatalog().then(setCatalog);
+      const { list, catalogChange } = await repo.updateActiveListItem(itemId, patch);
+      setActiveList(list);
+      if (catalogChange) setCatalog((cur) => cur.map((c) => (c.id === catalogChange.id ? catalogChange : c)));
     } catch {
       setActiveList(prev);
       showToast("Couldn't save — check your connection.");
@@ -187,8 +187,8 @@ export default function App() {
 
   async function handleAddCatalogItem(data: CatalogItemCreate) {
     try {
-      await repo.addCatalogItem(data);
-      repo.loadCatalog().then(setCatalog);
+      const created = await repo.addCatalogItem(data);
+      setCatalog((cur) => [...cur, created]);
     } catch {
       showToast("Couldn't add catalog item — check your connection.");
     }
@@ -196,8 +196,8 @@ export default function App() {
 
   async function handleUpdateCatalogItem(id: string, patch: CatalogItemUpdate) {
     try {
-      await repo.updateCatalogItem(id, patch);
-      repo.loadCatalog().then(setCatalog);
+      const updated = await repo.updateCatalogItem(id, patch);
+      setCatalog((cur) => cur.map((c) => (c.id === id ? updated : c)));
     } catch {
       showToast("Couldn't save — check your connection.");
     }
@@ -206,7 +206,7 @@ export default function App() {
   async function handleDeleteCatalogItem(id: string) {
     try {
       await repo.deleteCatalogItem(id);
-      repo.loadCatalog().then(setCatalog);
+      setCatalog((cur) => cur.filter((c) => c.id !== id));
     } catch {
       showToast("Couldn't delete — check your connection.");
     }

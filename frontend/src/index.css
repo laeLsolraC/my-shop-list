@@ -229,6 +229,21 @@ button {
   padding: 6px;
 }
 
+.star-btn {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 6px;
+  flex: none;
+}
+
+.star-btn.favorite {
+  color: var(--olive);
+}
+
 .section-label {
   font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-size: 12px;

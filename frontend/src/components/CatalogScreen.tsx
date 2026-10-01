@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { CatalogItemSheet } from "./CatalogItemSheet";
 import type { CatalogItem, CatalogItemCreate, CatalogItemUpdate } from "../types";
 import { formatPrice } from "../format";
@@ -23,6 +23,13 @@ export function CatalogScreen({
   const closeAdd = useBackableClose(adding, () => setAdding(false));
   const closeEdit = useBackableClose(editing !== null, () => setEditing(null));
 
+  const sortedCatalog = useMemo(() => {
+    return [...catalog].sort((a, b) => {
+      if (a.favorite !== b.favorite) return a.favorite ? -1 : 1;
+      return displayName(a, lang).localeCompare(displayName(b, lang));
+    });
+  }, [catalog, lang]);
+
   return (
     <div className="screen">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -34,7 +41,7 @@ export function CatalogScreen({
 
       {catalog.length === 0 && <p className="empty-state">No catalog items yet.</p>}
 
-      {catalog.map((item) => {
+      {sortedCatalog.map((item) => {
         const secondary = secondaryName(item, lang);
         return (
           <div key={item.id} className="item-row" onClick={() => setEditing(item)} style={{ cursor: "pointer" }}>
@@ -48,6 +55,16 @@ export function CatalogScreen({
                 </div>
               )}
             </div>
+            <button
+              className={`star-btn${item.favorite ? " favorite" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onUpdate(item.id, { favorite: !item.favorite });
+              }}
+              aria-label={item.favorite ? "Unmark favorite" : "Mark favorite"}
+            >
+              {item.favorite ? "★" : "☆"}
+            </button>
           </div>
         );
       })}

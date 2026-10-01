@@ -4,6 +4,7 @@ export interface CatalogItem {
   name_en: string | null;
   default_quantity: string | null;
   default_last_price: number | null;
+  favorite: boolean;
 }
 
 export interface CatalogItemCreate {
@@ -19,6 +20,7 @@ export interface CatalogItemUpdate {
   name_en?: string | null;
   default_quantity?: string | null;
   default_last_price?: number | null;
+  favorite?: boolean;
 }
 
 export interface ListItem {

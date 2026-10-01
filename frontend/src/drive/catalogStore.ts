@@ -13,7 +13,8 @@ async function getCatalogFileId(): Promise<string> {
 
 export async function getCatalog(): Promise<CatalogItem[]> {
   const fileId = await getCatalogFileId();
-  return readJson<CatalogItem[]>(fileId);
+  const items = await readJson<CatalogItem[]>(fileId);
+  return items.map((item) => ({ ...item, favorite: item.favorite ?? false }));
 }
 
 async function saveCatalog(fileId: string, items: CatalogItem[]): Promise<void> {
@@ -29,6 +30,7 @@ export async function addCatalogItem(item: CatalogItemCreate): Promise<CatalogIt
     name_en: item.name_en ?? null,
     default_quantity: item.default_quantity ?? null,
     default_last_price: item.default_last_price ?? null,
+    favorite: false,
   };
   items.push(newItem);
   await saveCatalog(fileId, items);

@@ -103,6 +103,7 @@ function applyLocalAdd(
       name_en: nameEn,
       default_quantity: quantity,
       default_last_price: price,
+      favorite: false,
     };
     catalogItemId = catalogChange.id;
   }

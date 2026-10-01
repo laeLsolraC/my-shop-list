@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ItemRow } from "./ItemRow";
 import { AddItemSheet } from "./AddItemSheet";
 import { EditItemSheet } from "./EditItemSheet";
@@ -30,6 +30,10 @@ export function ActiveListScreen({
 
   const unchecked = list.items.filter((i) => !i.done);
   const checked = list.items.filter((i) => i.done);
+  const alreadyOnListIds = useMemo(
+    () => new Set(list.items.map((i) => i.catalog_item_id).filter((id): id is string => id != null)),
+    [list.items],
+  );
 
   return (
     <div className="screen">
@@ -78,6 +82,7 @@ export function ActiveListScreen({
       {adding && (
         <AddItemSheet
           catalog={catalog}
+          alreadyOnListIds={alreadyOnListIds}
           lang={lang}
           onClose={closeAdd}
           onAdd={(create) => onAdd(create)}

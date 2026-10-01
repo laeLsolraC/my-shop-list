@@ -25,6 +25,7 @@ export function ItemRow({
   const draggingRef = useRef(false);
 
   function onPointerDown(e: React.PointerEvent) {
+    e.currentTarget.setPointerCapture(e.pointerId);
     startX.current = e.clientX;
     draggingRef.current = false;
     longPressTimer.current = setTimeout(() => {

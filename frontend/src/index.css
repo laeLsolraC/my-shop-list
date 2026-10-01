@@ -164,6 +164,7 @@ button {
   border: 1px solid var(--border);
   position: relative;
   overflow: hidden;
+  touch-action: pan-y;
 }
 
 .item-row + .item-row { margin-top: 8px; }

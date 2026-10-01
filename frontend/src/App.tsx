@@ -128,6 +128,16 @@ export default function App() {
     }
   }
 
+  async function handleAddItems(creates: ListItemCreate[]) {
+    try {
+      const { list, catalogChanges } = await repo.addItemsToActiveList(creates);
+      setActiveList(list);
+      if (catalogChanges.length) setCatalog((cur) => [...cur, ...catalogChanges]);
+    } catch {
+      showToast("Couldn't add items — check your connection.");
+    }
+  }
+
   async function handleUpdateItem(itemId: string, patch: ListItemUpdate) {
     if (!activeList) return;
     const prev = activeList;
@@ -249,6 +259,7 @@ export default function App() {
           catalog={catalog}
           lang={lang}
           onAdd={handleAddItem}
+          onAddMany={handleAddItems}
           onUpdate={handleUpdateItem}
           onDelete={(id) => {
             handleDeleteItem(id);

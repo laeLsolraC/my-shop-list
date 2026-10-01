@@ -13,12 +13,14 @@ export function AddItemSheet({
   lang,
   onClose,
   onAdd,
+  onAddMany,
 }: {
   catalog: CatalogItem[];
   alreadyOnListIds: Set<string>;
   lang: Lang;
   onClose: () => void;
   onAdd: (create: ListItemCreate) => Promise<void>;
+  onAddMany: (creates: ListItemCreate[]) => Promise<void>;
 }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -52,11 +54,8 @@ export function AddItemSheet({
   async function addSelected() {
     setAdding(true);
     try {
-      // Sequential, not concurrent: each add reads-modifies-writes the same
-      // Drive file, so running them in parallel risks one overwriting another.
-      for (const item of catalog.filter((c) => selected.has(c.id))) {
-        await onAdd({ catalog_item_id: item.id });
-      }
+      const creates = catalog.filter((c) => selected.has(c.id)).map((item) => ({ catalog_item_id: item.id }));
+      await onAddMany(creates);
       onClose();
     } finally {
       setAdding(false);

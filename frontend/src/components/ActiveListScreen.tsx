@@ -11,6 +11,7 @@ export function ActiveListScreen({
   catalog,
   lang,
   onAdd,
+  onAddMany,
   onUpdate,
   onDelete,
   onCreateNewList,
@@ -19,6 +20,7 @@ export function ActiveListScreen({
   catalog: CatalogItem[];
   lang: Lang;
   onAdd: (create: ListItemCreate) => Promise<void>;
+  onAddMany: (creates: ListItemCreate[]) => Promise<void>;
   onUpdate: (itemId: string, patch: ListItemUpdate) => Promise<void>;
   onDelete: (itemId: string) => Promise<void>;
   onCreateNewList: () => Promise<void>;
@@ -86,6 +88,7 @@ export function ActiveListScreen({
           lang={lang}
           onClose={closeAdd}
           onAdd={(create) => onAdd(create)}
+          onAddMany={(creates) => onAddMany(creates)}
         />
       )}
 

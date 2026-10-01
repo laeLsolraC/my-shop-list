@@ -184,6 +184,50 @@ export async function addItemToActiveList(
   return { list, catalogChange };
 }
 
+/** Adds several items as one action — one Drive write, not one per item (see listStore.addItems). */
+export async function addItemsToActiveList(
+  creates: ListItemCreate[],
+): Promise<{ list: ShoppingList; catalogChanges: CatalogItem[] }> {
+  const finalized = creates.map((create) => ({
+    ...create,
+    id: create.id ?? crypto.randomUUID(),
+    new_catalog_item_id:
+      !create.catalog_item_id && create.add_to_catalog ? create.new_catalog_item_id ?? crypto.randomUUID() : undefined,
+  }));
+
+  if (isOnline()) {
+    try {
+      const { list, catalogChanges } = await listStore.addItems(finalized);
+      await setCache("activeList", list);
+      for (const change of catalogChanges) await patchCatalogCache(change, true);
+      return { list, catalogChanges };
+    } catch (err) {
+      if (!isNetworkFailure(err)) throw err;
+      /* else fall through to offline path */
+    }
+  }
+
+  let cachedList = (await getCache<ShoppingList>("activeList")) ?? {
+    id: "pending",
+    created_at: new Date().toISOString(),
+    items: [],
+  };
+  let cachedCatalog = (await getCache<CatalogItem[]>("catalog")) ?? [];
+  const catalogChanges: CatalogItem[] = [];
+  for (const create of finalized) {
+    const applied = applyLocalAdd(cachedList, cachedCatalog, create);
+    cachedList = applied.list;
+    if (applied.catalogChange) {
+      cachedCatalog = [...cachedCatalog, applied.catalogChange];
+      catalogChanges.push(applied.catalogChange);
+    }
+    await enqueueMutation({ kind: "addItem", payload: create });
+  }
+  await setCache("activeList", cachedList);
+  await setCache("catalog", cachedCatalog);
+  return { list: cachedList, catalogChanges };
+}
+
 export async function updateActiveListItem(
   itemId: string,
   patch: ListItemUpdate,

@@ -182,6 +182,68 @@ export async function addItem(
   return { list, catalogChange };
 }
 
+/**
+ * Adds several items in one read-modify-write cycle (one Drive read + one
+ * write regardless of count), instead of looping addItem — which would cost
+ * a full round trip per item for what the user experiences as one action
+ * (e.g. a multi-select "Add (4)").
+ */
+export async function addItems(
+  items: ListItemCreate[],
+): Promise<{ list: ShoppingList; catalogChanges: CatalogItem[] }> {
+  const { fileId } = await getActiveListFile();
+  const list = await readJson<ShoppingList>(fileId);
+
+  let catalog: CatalogItem[] | null = null;
+  const catalogChanges: CatalogItem[] = [];
+
+  for (const item of items) {
+    let catalogItemId = item.catalog_item_id ?? null;
+    let namePt = item.name_pt ?? null;
+    let nameEn = item.name_en ?? null;
+    let quantity = item.quantity ?? null;
+    let price = item.price ?? null;
+
+    if (catalogItemId) {
+      if (!catalog) catalog = await getCatalog();
+      let catalogItem = catalog.find((c) => c.id === catalogItemId);
+      for (let attempt = 0; attempt < 4 && !catalogItem; attempt++) {
+        await new Promise((r) => setTimeout(r, 1000));
+        catalog = await getCatalog();
+        catalogItem = catalog.find((c) => c.id === catalogItemId);
+      }
+      if (!catalogItem) throw new NotFound(`catalog item ${catalogItemId} not found`);
+      namePt = namePt ?? catalogItem.name_pt;
+      nameEn = nameEn ?? catalogItem.name_en;
+      quantity = quantity ?? catalogItem.default_quantity;
+      price = price ?? catalogItem.default_last_price;
+    } else if (item.add_to_catalog) {
+      const created = await addCatalogItem({
+        id: item.new_catalog_item_id,
+        name_pt: namePt,
+        name_en: nameEn,
+        default_quantity: quantity,
+        default_last_price: price,
+      });
+      catalogItemId = created.id;
+      catalogChanges.push(created);
+    }
+
+    list.items.push({
+      id: item.id ?? crypto.randomUUID(),
+      catalog_item_id: catalogItemId,
+      name_pt: namePt,
+      name_en: nameEn,
+      quantity,
+      price,
+      done: false,
+    });
+  }
+
+  await writeJson(fileId, serializeList(list));
+  return { list, catalogChanges };
+}
+
 export async function updateItem(
   itemId: string,
   patch: ListItemUpdate,
